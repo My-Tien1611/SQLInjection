@@ -23,11 +23,12 @@ Có thể phát hiện SQLi theo cách thủ công bằng cách:
 
 - Tải trọng OAST được thiết kế để kích hoạt tương tác mạng ngoài băng tần khi được thực hiện trong truy vấn SQL và giám sát mọi tương tác phát sinh.
 #### 2.1 Trong các phần khác nhau của truy vấn
-- Hầu hết các lỗ hổng SQL injection đều xảy ra trong WHERE của một SELECT
-- Trong UPDATE, trong các giá trị được cập nhật hoặc WHERE.
-- Trong INSERT, bên trong các giá trị được chèn vào.
-- Trong SELECT, bên trong tên bảng hoặc cột.
-- Trong SELECT, trong ORDER BY.
+- Hầu hết các lỗ hổng SQL injection đều xảy ra trong `WHERE` của một `SELECT`.
+- Trong `UPDATE`, ở các giá trị được cập nhật hoặc `WHERE`.
+- Trong `INSERT`, bên trong các giá trị được chèn vào.
+- Trong `SELECT`, bên trong tên bảng hoặc cột.
+- Trong `SELECT`, mệnh đề `ORDER BY`.
+
 ##### 2.1.1 Truy vấn dữ liệu ẩn
 📜**LAB 1: SQLI TRONG MỆNH ĐỀ WHERE CHO PHÉP TRUY XUẤT DỮ LIỆU ẨN**
 
@@ -43,8 +44,22 @@ Nếu ứng dụng kiểm tra thông tin đăng nhập bằng câu truy vấn sa
 Nếu truy vấn trả về thông tin chi tiết của người dùng, thì đăng nhập thành công. Nếu không, đăng nhập sẽ bị từ chối.
 
 Trong trường hợp này, kẻ tấn công có thể đăng nhập bằng bất kỳ người dùng nào mà không cần mật khẩu. Chúng có thể thực hiện việc này bằng cách sử dụng chuỗi chú thích SQL -- để xóa kiểm tra mật khẩu khỏi mệnh đề truy vấn WHERE. 
-
 Ví dụ:<br> `SELECT * FROM users WHERE username = 'administrator'--' AND password = ''`
 📜 **LAB 2: SQLI CHO PHÉP BỎ QUA ĐĂNG NHẬP**
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6976fdfb-7c4f-4c36-a8b0-b19acab55f3f" />
+
+##### 2.1.3 Lấy dữ liệu từ cơ sở dữ liệu khác - Tấn công SQLi UNION
+Ta có thể sử dụng UNION để thực thi truy vấn SELECT bổ sung và thêm kết quả vào truy vấn ban đầu. Ví dụ:
+
+Nếu một ứng dụng thực hiện truy vấn sau có chứa thông tin đầu vào của người dùng `Gifts`: <br>
+`SELECT name, description FROM products WHERE category = 'Gifts'` <br>
+ Kẻ tấn công có thể gửi thông tin đầu vào:
+ `' UNION SELECT username, password FROM users--`
+ 
+Điều này khiến ứng dụng trả về tất cả tên người dùng và mật khẩu cùng với tên và mô tả sản phẩm.
+
+Để UNION có hiệu quả, hai yêu cầu chính phải được đáp ứng:
+- Các truy vấn riêng lẻ phải trả về cùng số cột.
+- Các kiểu dữ liệu trong mỗi cột phải tương thích giữa các truy vấn riêng lẻ.
+ 
 
