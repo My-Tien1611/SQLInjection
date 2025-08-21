@@ -61,5 +61,32 @@ Nếu một ứng dụng thực hiện truy vấn sau có chứa thông tin đ�
 Để UNION có hiệu quả, hai yêu cầu chính phải được đáp ứng:
 - Các truy vấn riêng lẻ phải trả về cùng số cột.
 - Các kiểu dữ liệu trong mỗi cột phải tương thích giữa các truy vấn riêng lẻ.
- 
+
+###### 2.1.3.1 Xác định số lượng cột
+Khi thực hiện SQL Injection dạng UNION, cần biết số lượng cột trong truy vấn gốc. Có hai phương pháp xác định:
+
+- ORDER BY:
+  + Thêm ORDER BY 1--, ORDER BY 2--, ORDER BY 3--... vào payload.
+  + Khi vượt quá số cột thực tế, cơ sở dữ liệu báo lỗi (ví dụ: out of range).
+  + Dựa vào lỗi hoặc sự khác biệt trong phản hồi, có thể suy ra số lượng cột.
+- UNION SELECT với NULL:
+  + ThửUNION SELECT NULL--, UNION SELECT NULL,NULL--, UNION SELECT NULL,NULL,NULL--...
+  + Nếu số lượng NULL không khớp với số cột → báo lỗi.
+  + Khi khớp → truy vấn hợp lệ, có thể trả về một dòng chứa toàn NULL.
+  + Dấu hiệu trong phản hồi HTTP có thể là: thêm dữ liệu, báo lỗi khác, hoặc không khác biệt gì.
+
+📜**LAB 3: SQLI UNION, XÁC ĐỊNH SỐ LƯỢNG CỘT ĐƯỢC TRẢ VỀ BỞI TRUY VẤN**
+
+Lab này xác định số cột được truy vấn trả về bằng cách thực hiện tấn công SQL injection UNION trả về một hàng bổ sung chứa các giá trị null
+
+Bước 1: Sửa đổi tham số `category` bằng cách gán giá trị  `'+UNION+SELECT+NULL--` Quan sát thấy lỗi xảy ra.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5e8f0d90-96f8-41ed-89a4-5fedd38e908c" />
+Bước 2: Sửa đổi tham số category để thêm một cột bổ sung có chứa giá trị null
+`'+UNION+SELECT+NULL,NULL--`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/70c8e582-76af-40fa-825e-8dc4006461eb" />
+Bước 3: Tiếp tục thêm giá trị null cho đến khi lỗi biến mất và phản hồi bao gồm nội dung bổ sung có chứa giá trị null.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/4181a66f-dec6-43c7-887b-9b8fd09b9da3" />
+
+
+
 
