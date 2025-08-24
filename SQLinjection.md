@@ -281,3 +281,31 @@ Tiếp tục thay đổi giá trị để xác định độ dài của mật kh
 
 Bước 7: Trong Intruder: `TrackingId=lymgpqdLQyOrztR3' AND (SELECT SUBSTRING(password,1,1) FROM users WHERE username='administrator')='a`
 
+
+###### 2.1.5.2 SQLi dựa trên lỗi
+- Kịch bản phổ biến
+  + Kích hoạt lỗi dựa trên biểu thức boolean: Dựa vào việc ứng dụng trả về hoặc không trả về lỗi, kẻ tấn công có thể suy ra giá trị đúng/sai và khai thác tương tự như SQL injection mù
+  + Kích hoạt lỗi để lộ dữ liệu: Một số thông báo lỗi có thể chứa dữ liệu truy vấn, giúp kẻ tấn công trực tiếp nhìn thấy dữ liệu nhạy cảm.
+
+**Khai thác lỗi SQL injection bằng cách kích hoạt lỗi có điều kiện**
+
+- Có thể khai thác bằng cách gây ra lỗi có điều kiện: sửa đổi truy vấn để tạo lỗi cơ sở dữ liệu (ví dụ chia cho 0) chỉ khi một điều kiện đúng.
+- Nếu ứng dụng phản hồi khác khi có lỗi (ví dụ trả về thông báo lỗi hoặc mã trạng thái khác), kẻ tấn công có thể suy ra tính đúng/sai của điều kiện.
+- Kỹ thuật này cho phép trích xuất dữ liệu từng ký tự, kiểm tra dần thông tin nhạy cảm (ví dụ tên tài khoản, mật khẩu).
+
+📜**LAB 12: SQLI MÙ VỚI LỖI CÓ ĐIỀU KIỆN**
+
+---
+
+##### 2.1.6 SQLi bậc 2:
+- **SQL injection cấp một (first-order)**: xảy ra ngay tại thời điểm ứng dụng nhận dữ liệu đầu vào từ người dùng và chèn trực tiếp vào truy vấn SQL không an toàn.
+- **SQL injection cấp hai (second-order)**: dữ liệu đầu vào được người dùng gửi đến và lưu trữ (thường trong cơ sở dữ liệu) mà chưa gây ra lỗi. Ở một yêu cầu khác, ứng dụng truy xuất dữ liệu đã lưu và chèn nó vào truy vấn SQL không an toàn, khi đó lỗ hổng mới xảy ra. Vì vậy còn gọi là SQL injection lưu trữ.
+
+--- 
+
+### 3. Lỗi SQL Injection trên các hàm SELECT, INSERT, UPDATE, DELETE
+#### 3.1 Lỗi SQL Injection trên các hàm SELECT
+
+#### 3.2 Lỗi SQL Injection trên các hàm INSERT
+#### 3.3 Lỗi SQL Injection trên các hàm UPDATE
+#### 3.4 Lỗi SQL Injection trên các hàm DELETE
