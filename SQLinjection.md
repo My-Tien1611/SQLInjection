@@ -434,6 +434,7 @@ Bước 2: Nhấn vào Thăm dò ngay
 SQL Injection không chỉ giới hạn ở query string mà có thể chèn qua mọi định dạng đầu vào được xử lý thành SQL, và có thể né bộ lọc bằng cách mã hóa hoặc thoát ký tự.
 
 📜**LAB 18: SQLI VỚI KỸ THUẬT VƯỢT QUA BỘ LỘC BẰNG MÃ HÓA XML**
+
 Bước 1: Thay thế ID bằng các biểu thức toán học có thể đánh giá theo các ID tiềm năng khác
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d47ab3ee-f61f-4644-93af-301c621aacaa" />
 Bước 2: Xác định số cột được trả về bởi truy vấn gốc bằng cách thêm một UNION SELECT vào ID cửa hàng gốc:
