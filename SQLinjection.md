@@ -1,7 +1,30 @@
 # Tìm hiểu về SQL injection
 - Người thực hiện: Lê Thị Mỹ Tiên
-- Cập nhật lần cuối: 21/8/2025
+- Cập nhật lần cuối: 26/8/2025
 ## Mục Lục
+- [1. Khái niệm - Tác động](#1-khái-niệm---tác-động)
+- [2. Cách phát hiện lỗ hổng SQL injection](#2-cách-phát-hiện-lỗ-hổng-sql-injection)
+  - [2.1 Phát hiện SQLi trong các phần khác nhau của truy vấn](#21-phát-hiện-sqli-trong-các-phần-khác-nhau-của-truy-vấn)
+    - [2.1.1 Truy vấn dữ liệu ẩn](#211-truy-vấn-dữ-liệu-ẩn)
+    - [2.1.2 Phá vỡ logic ứng dụng](#212-phá-vỡ-logic-ứng-dụng)
+    - [2.1.3 Lấy dữ liệu từ cơ sở dữ liệu khác - Tấn công SQLi UNION](#213-lấy-dữ-liệu-từ-cơ-sở-dữ-liệu-khác---tấn-công-sqli-union)
+      - [2.1.3.1 Xác định số lượng cột](#2131-xác-định-số-lượng-cột)
+      - [2.1.3.2 Tìm các cột có dữ liệu quan trọng](#2132-tìm-các-cột-có-dữ-liệu-quan-trọng)
+      - [2.1.3.3 Lấy dữ liệu quan trọng](#2133-lấy-dữ-liệu-quan-trọng)
+      - [2.1.3.4 Lấy nhiều giá trị trong một cột duy nhất](#2134-lấy-nhiều-giá-trị-trong-một-cột-duy-nhất)
+    - [2.1.4 Kiểm tra cơ sở dữ liệu](#214-kiểm-tra-cơ-sở-dữ-liệu)
+      - [2.1.4.1 Truy vấn loại và phiên bản cơ sở dữ liệu](#2141-truy-vấn-loại-và-phiên-bản-cơ-sở-dữ-liệu)
+      - [2.1.4.2 Liệt kê nội dung](#2142-liệt-kê-nội-dung)
+    - [2.1.5 Lỗ hổng SQLi mù](#215-lỗ-hổng-sqli-mù)
+      - [2.1.5.1 Khai thác lỗi SQLi bằng cách kích hoạt phản hồi có điều kiện](#2151-khai-thác-lỗi-sqli-bằng-cách-kích-hoạt-phản-hồi-có-điều-kiện)
+      - [2.1.5.2 SQLi dựa trên lỗi](#2152-sqli-dựa-trên-lỗi)
+      - [2.1.5.3 Kích hoạt thời gian trễ](#2153-kích-hoạt-thời-gian-trễ)
+      - [2.1.5.4 Kỹ thuật ngoài băng tần (OAST)](#2154-kỹ-thuật-ngoài-băng-tần-oast)
+    - [2.1.6 SQLi bậc 2](#216-sqli-bậc-2)
+  - [2.2 Phát hiện SQLi trong các bối cảnh khác nhau](#22-phát-hiện-sqli-trong-các-bối-cảnh-khác-nhau)
+- [3. Lỗi SQL Injection trên các hàm SELECT, INSERT, UPDATE, DELETE](#3-lỗi-sql-injection-trên-các-hàm-select-insert-update-delete)
+- [4. Cách phòng chống lỗi SQL Injection](#4-cách-phòng-chống-lỗi-sql-injection)
+
 ## Nội dung
 ### 1. Khái niệm - Tác động
 - SQL Injection (SQLi) là một lỗ hổng bảo mật web cho phép kẻ tấn công chèn hoặc can thiệp vào các truy vấn SQL mà ứng dụng gửi đến cơ sở dữ liệu.
@@ -450,9 +473,25 @@ Bước 5: Vì chỉ có thể trả về một cột nên cần nối các tên
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/67e4327e-1fd6-4705-9e0b-feda5f0c180b" />
 **Mật khẩu: l3j27vh6n4gyywn89t26**
 
-### 3. Lỗi SQL Injection trên các hàm SELECT, INSERT, UPDATE, DELETE
-#### 3.1 Lỗi SQL Injection trên các hàm SELECT
+----
 
-#### 3.2 Lỗi SQL Injection trên các hàm INSERT
-#### 3.3 Lỗi SQL Injection trên các hàm UPDATE
-#### 3.4 Lỗi SQL Injection trên các hàm DELETE
+### 3. Lỗi SQL Injection trên các hàm SELECT, INSERT, UPDATE, DELETE
+| Loại câu lệnh | Code dễ bị lỗi                                                                                                   | Câu lệnh thực thi                                                                                                        | Kết quả                                                   |
+|---------------|-----------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| **SELECT**    | ```$username = $_GET['username'];$query = "SELECT * FROM users WHERE username = '$username'";``` | ```SELECT * FROM users WHERE username = 'admin' OR '1'='1' --;```                                           | Trả về toàn bộ dòng trong bảng `users`.                   |
+| **INSERT**    | ```$name = $_POST['name']; $email = $_POST['email'];$query = "INSERT INTO customers (name, email) VALUES ('$name', '$email')";``` | ```INSERT INTO customers (name, email) VALUES ('John'); DROP TABLE customers;--', 'abc@example.com');```     | Bảng `customers` có thể bị xóa (nếu DB cho phép multi-statement). |
+| **UPDATE**    | ```$id = $_POST['id'];$newPass = $_POST['password'];$query = "UPDATE users SET password = '$newPass' WHERE id = $id";``` | ```UPDATE users SET password = 'hacked' WHERE id = 1 OR 1=1;```                                             | Toàn bộ tài khoản bị đổi mật khẩu thành "hacked".         |
+| **DELETE**    | ```$id = $_GET['id'];$query = "DELETE FROM orders WHERE id = $id";```                           | ```DELETE FROM orders WHERE id = 0 OR 1=1;```                                                               | Xóa toàn bộ bản ghi trong bảng `orders`.                  |
+
+----
+
+### 4. Cách phòng chống lỗi SQL Injection
+- **Parameterized Queries**: Sử dụng Prepared Statements hoặc Parameterized Queries là biện pháp hiệu quả nhất:
+
+  `$stmt = $pdo->prepare('SELECT * FROM users WHERE username = :username');`
+
+  `$stmt->execute(['username' => $username]);`
+- **ORM Framework**: Các framework ORM hiện đại như Hibernate, Django ORM, Entity Framework... đều có cơ chế bảo vệ sẵn. Tuy nhiên, cần thận trọng khi sử dụng các hàm raw query
+- **WAF + Runtime Protection**: Kết hợp WAF với các giải pháp bảo vệ runtime như RASP (Runtime Application Self-Protection) tạo thành lớp phòng thủ toàn diện
+- **Principle of Least Privilege**: Nguyên tắc quyền tối thiểu - database user chỉ được cấp quyền tối thiểu cần thiết, giảm thiểu tác hại khi bị tấn công.
+- **Kiểm thử thường xuyên**: Thực hiện pentest định kỳ, đặc biệt sau mỗi thay đổi lớn trong ứng dụng. Automated scanning kết hợp với manual testing cung cấp mức độ bảo vệ tối ưu
